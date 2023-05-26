@@ -6,6 +6,7 @@ from .chemoinformatics import (
     calculate_similarity,
     predict_CBL_B_activity,
     validate_smiles_string,
+    target_protein_preparation,
 )
 
 PromptGenerator = TypeVar("PromptGenerator")
@@ -74,6 +75,12 @@ class AutoGPTChemoinformatics(AutoGPTPluginTemplate):
             "Evaluate whether SMILES strings are valid and returns True if so",
             {"smiles": "<smiles>"},
             validate_smiles_string,
+        )
+        prompt.add_command(
+            "target_protein_preparation",
+            "Do target protein preparation with preparation setting json. Setting json must be absolute path. See DockStream/target_preparation_example.jsonc to make setting json",
+            {"setting_json": "<setting_json>"},
+            target_protein_preparation,
         )
         return prompt
 
