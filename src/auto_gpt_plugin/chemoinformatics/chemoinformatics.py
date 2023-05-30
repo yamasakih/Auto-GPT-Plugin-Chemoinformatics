@@ -1,7 +1,7 @@
 import os
 import subprocess
 from pathlib import Path
-from typing import Any, List, Union
+from typing import Any, List, Tuple, Union
 
 from rdkit.Chem import AllChem as Chem
 from rdkit.DataStructs import TanimotoSimilarity
@@ -79,7 +79,7 @@ def scaffold_hopping(smiles: str) -> str:
     pass
 
 
-def target_protein_preparation(setting_json: str) -> None:
+def target_protein_preparation(setting_json: str) -> Tuple[str]:
     """
     Do target protein preparation with preparation setting json
 
@@ -87,8 +87,9 @@ def target_protein_preparation(setting_json: str) -> None:
         setting_json (str): Setting json absolute path for target protein preparation
 
     Return:
-        None: Output file path is assigned in setting file
+        receptor_path, logfile
     """
+    import json
     import os
     from pathlib import Path
 
@@ -99,7 +100,7 @@ def target_protein_preparation(setting_json: str) -> None:
     python_path = Path(dockstream_env) / "bin" / "python3"
 
     workdir = os.environ["WORKDIR"]
-    setting_json = str((Path(workdir) / setting_json).resolve())
+    os.chdir(workdir)
 
     command = [
         str(python_path),
@@ -114,6 +115,16 @@ def target_protein_preparation(setting_json: str) -> None:
         print(f"Error: {stderr.decode()}")
     else:
         print(f"Output: {stdout.decode()}")
+
+    with open(setting_json, "r") as f:
+        setting = json.load(f)
+
+    receptor_path = setting["target_preparation"]["runs"][0]["output"][
+        "receptor_path"
+    ]
+    log_file = setting["target_preparation"]["header"]["logging"]["logfile"]
+
+    return receptor_path, log_file
 
 
 # def dock_ligand_compounds_and_target_protein(json_setting: str) -> None:
@@ -146,18 +157,18 @@ def make_apo_protein_pdb(pdb: str) -> str:
                 return 1
             return 0
 
-    workdir = Path(os.environ["WORKDIR"])
+    workdir = os.environ["WORKDIR"]
+    os.chdir(workdir)
 
-    pdb = workdir / pdb
-    name = pdb.stem
+    name = Path(pdb).stem
 
     parser = PDBParser()
-    structure = parser.get_structure("protein_structure", str(pdb))
+    structure = parser.get_structure("protein_structure", pdb)
 
     io = PDBIO()
     io.set_structure(structure)
 
-    output_name = str(workdir / (name + "_apo.pdb"))
+    output_name = name + "_apo.pdb"
     io.save(output_name, select=SelectProtein())
     return output_name
 
@@ -189,13 +200,11 @@ def make_only_ligand_compound_pdb(pdb: str) -> str:
                 return 0
             return 1
 
-    workdir = Path(os.environ["WORKDIR"])
-
-    pdb = workdir / pdb
-    name = pdb.stem
+    workdir = os.environ["WORKDIR"]
+    os.chdir(workdir)
 
     parser = PDBParser()
-    structure = parser.get_structure("protein_structure", str(pdb))
+    structure = parser.get_structure("protein_structure", pdb)
 
     io = PDBIO()
     io.set_structure(structure)
@@ -209,10 +218,7 @@ def make_only_ligand_compound_pdb(pdb: str) -> str:
 
     for ligand_resname in ligand_resnames:
         io.save(
-            str(workdir / (ligand_resname + ".pdb")),
+            ligand_resname + ".pdb",
             SelectLigand(ligand_resname),
         )
-    return [
-        str(workdir / (ligand_resname + ".pdb"))
-        for ligand_resname in ligand_resnames
-    ]
+    return [ligand_resname + ".pdb" for ligand_resname in ligand_resnames]
