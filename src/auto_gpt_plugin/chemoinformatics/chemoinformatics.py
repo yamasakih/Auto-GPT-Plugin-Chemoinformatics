@@ -255,3 +255,87 @@ def target_protein_preparation(setting_json: str) -> None:
 #     Returns:
 #         List[bool] or bool: is valid or not
 #     """
+
+
+def make_apo_protein_pdb(pdb: str) -> str:
+    """
+    Make apo protein (only protein, not including ligand compounds) PDB
+
+    Args:
+        pdb str: Input PDB file path
+
+    Returns:
+        str: Apo PDB file path
+    """
+    import os
+    from Bio.PDB import PDBIO, PDBParser, Select
+    from pathlib import Path
+
+    workdir = os.environ["WORKDIR"]
+
+    pdb = Path(workdir) / pdb
+    name = pdb.stem
+
+    class SelectProtein(Select):
+        def accept_residue(self, residue):
+            if (
+                residue.get_full_id()[3][0] == " "
+                or residue.get_resname() == "HOH"
+            ):
+                return 1
+            return 0
+
+    parser = PDBParser()
+    structure = parser.get_structure("protein_structure", str(pdb))
+
+    io = PDBIO()
+    io.set_structure(structure)
+
+    output_name = name + "_apo.pdb"
+    io.save(output_name, select=SelectProtein())
+    return output_name
+
+
+def make_only_ligand_compound_pdb(pdb: str) -> str:
+    """
+    Make only ligand compounds PDB
+
+    Args:
+        pdb str: Input PDB file path
+
+    Returns:
+        str: only ligand compound PDB file path
+    """
+    import os
+    from Bio.PDB import PDBIO, PDBParser, Select
+    from pathlib import Path
+
+    class SelectLigand(Select):
+        def __init__(self, ligand_resname):
+            self.ligand_resname = ligand_resname
+
+        def accept_residue(self, residue):
+            if (
+                residue.get_full_id()[3][0] == " "
+                or residue.get_resname() == "HOH"
+                or residue.get_resname() != self.ligand_resname
+            ):
+                return 0
+            return 1
+
+    parser = PDBParser()
+    structure = parser.get_structure("protein_structure", "1uyd.pdb")
+
+    io = PDBIO()
+    io.set_structure(structure)
+
+    ligand_resnames = set(
+        residue.get_resname()
+        for residue in structure.get_residues()
+        if residue.get_full_id()[3][0] != " "
+    )
+    ligand_resnames.discard("HOH")
+
+    for ligand_resname in ligand_resnames:
+        io.save(ligand_resname + ".pdb", SelectLigand(ligand_resname))
+    return [ligand_resname + ".pdb" for ligand_resname in ligand_resnames]

@@ -4,6 +4,8 @@ from auto_gpt_plugin_template import AutoGPTPluginTemplate
 
 from .chemoinformatics import (
     calculate_similarity,
+    make_apo_protein_pdb,
+    make_only_ligand_compound_pdb,
     predict_CBL_B_activity,
     validate_smiles_string,
     target_protein_preparation,
@@ -81,6 +83,18 @@ class AutoGPTChemoinformatics(AutoGPTPluginTemplate):
             "Do target protein preparation with preparation setting json. Setting json must be absolute path. See DockStream/target_preparation_example.jsonc to make setting json",
             {"setting_json": "<setting_json>"},
             target_protein_preparation,
+        )
+        prompt.add_command(
+            "make_apo_protein_pdb",
+            "Make apo protein (only protein, not including ligand compounds) PDB",
+            {"pdb": "<pdb>"},
+            make_apo_protein_pdb,
+        )
+        prompt.add_command(
+            "make_only_ligand_compound_pdb",
+            "Make only ligand compounds PDB",
+            {"pdb": "<pdb>"},
+            make_only_ligand_compound_pdb,
         )
         return prompt
 
