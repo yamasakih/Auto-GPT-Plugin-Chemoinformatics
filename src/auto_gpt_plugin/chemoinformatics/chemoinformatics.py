@@ -222,3 +222,42 @@ def make_only_ligand_compound_pdb(pdb: str) -> str:
             SelectLigand(ligand_resname),
         )
     return [ligand_resname + ".pdb" for ligand_resname in ligand_resnames]
+
+
+def run_reinvent_with_docking(setting_json: str) -> None:
+    """
+    Run reinvnet with docking by DockStream
+
+    Args:
+        setting_json (str): Setting json path for reinvent
+
+    Return:
+        None
+    """
+    import json
+    import os
+    from pathlib import Path
+
+    reinvent_path = os.environ["REINVENT_PATH"]
+    reinvent_env = os.environ["REINVENT_ENV"]
+
+    input_ = Path(reinvent_path) / "input.py"
+    python_path = Path(reinvent_env) / "bin" / "python"
+
+    workdir = os.environ["WORKDIR"]
+    os.chdir(workdir)
+
+    command = [
+        str(python_path),
+        str(input_),
+        setting_json,
+    ]
+    process = subprocess.Popen(command, stdout=subprocess.PIPE)
+    stdout, stderr = process.communicate()
+
+    if process.returncode != 0:
+        print(f"Error: {stderr.decode()}")
+    else:
+        print(f"Output: {stdout.decode()}")
+
+    return
