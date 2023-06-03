@@ -9,6 +9,7 @@ from .chemoinformatics import (
     predict_CBL_B_activity,
     validate_smiles_string,
     target_protein_preparation,
+    run_reinvent_with_docking,
 )
 
 PromptGenerator = TypeVar("PromptGenerator")
@@ -95,6 +96,12 @@ class AutoGPTChemoinformatics(AutoGPTPluginTemplate):
             "Make only ligand compounds PDB",
             {"pdb": "<pdb>"},
             make_only_ligand_compound_pdb,
+        )
+        prompt.add_command(
+            "run_reinvent_with_docking",
+            "Run reinvent with reinforcement learning setting json.",
+            {"setting_json": "<setting_json>"},
+            run_reinvent_with_docking,
         )
         return prompt
 
