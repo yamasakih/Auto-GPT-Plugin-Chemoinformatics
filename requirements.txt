@@ -9,3 +9,4 @@ build
 twine
 rdkit==2022.9.5
 biopython==1.81
+pandas

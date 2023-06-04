@@ -4,6 +4,7 @@ from auto_gpt_plugin_template import AutoGPTPluginTemplate
 
 from .chemoinformatics import (
     calculate_similarity,
+    compare_smiles_with_sdf,
     make_apo_protein_pdb,
     make_only_ligand_compound_pdb,
     predict_CBL_B_activity,
@@ -102,6 +103,16 @@ class AutoGPTChemoinformatics(AutoGPTPluginTemplate):
             "Run reinvent with reinforcement learning setting json.",
             {"setting_json": "<setting_json>"},
             run_reinvent_with_docking,
+        )
+        prompt.add_command(
+            "compare_smiles_with_sdf",
+            "Compare smiles in text file with SDF and output smiles which not included in SDF and dissimilarity top 10",
+            {
+                "csv_file": "<csv_file>",
+                "sdf_file": "<sdf_file>",
+                "output_file": "<output_file>",
+            },
+            compare_smiles_with_sdf,
         )
         return prompt
 

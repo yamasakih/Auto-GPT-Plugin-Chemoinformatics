@@ -261,3 +261,69 @@ def run_reinvent_with_docking(setting_json: str) -> None:
         print(f"Output: {stdout.decode()}")
 
     return
+
+
+def compare_smiles_with_sdf(csv_file: str, sdf_file: str, output_file: str):
+    import pandas as pd
+    from rdkit import Chem
+    from rdkit.Chem import rdFingerprintGenerator
+    from rdkit import DataStructs
+
+    """
+    Compare smiles in text file with SDF and output smiles which not included
+    in SDF and dissimilarity top 10
+
+    Args:
+        csv_file (str): smiles csv
+        sdf_file (str): sdf file
+        output_file (str): output file name for result csv
+    
+    Return:
+        output_file name (str)
+    """
+
+    def read_sdf_to_mols(file_path):
+        suppl = Chem.SDMolSupplier(file_path)
+        mols = [mol for mol in suppl if mol is not None]
+        return mols
+
+    def read_csv_to_mols(file_path):
+        df = pd.read_csv(file_path)
+        mols = [Chem.MolFromSmiles(smiles) for smiles in df["SMILES"]]
+        return mols
+
+    def compute_avg_tanimoto(csv_mols, sdf_mols):
+        fp_gen = rdFingerprintGenerator.GetRDKitFPGenerator()
+        csv_fps = [fp_gen.GetFingerprint(mol) for mol in csv_mols]
+        sdf_fps = [fp_gen.GetFingerprint(mol) for mol in sdf_mols]
+
+        avg_tanimoto = []
+        for csv_fp in csv_fps:
+            tanimoto_scores = [
+                DataStructs.FingerprintSimilarity(csv_fp, sdf_fp)
+                for sdf_fp in sdf_fps
+            ]
+            avg_tanimoto.append(sum(tanimoto_scores) / len(tanimoto_scores))
+
+        return avg_tanimoto
+
+    sdf_mols = read_sdf_to_mols(sdf_file)
+    csv_mols = read_csv_to_mols(csv_file)
+
+    # Convert sdf_mols to a set for faster lookup
+    sdf_mols_set = set(Chem.MolToSmiles(mol) for mol in sdf_mols)
+    not_included_mols = [
+        mol for mol in csv_mols if Chem.MolToSmiles(mol) not in sdf_mols_set
+    ]
+
+    not_included_smiles = [Chem.MolToSmiles(mol) for mol in not_included_mols]
+
+    avg_tanimoto = compute_avg_tanimoto(not_included_mols, sdf_mols)
+    df_not_included = pd.DataFrame(
+        {
+            "SMILES": not_included_smiles[:10],
+            "Average Tanimoto Similarity": avg_tanimoto[:10],
+        }
+    )
+    df_not_included.to_csv(output_file, index=False)
+    return output_file
